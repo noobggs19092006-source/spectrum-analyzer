@@ -1,0 +1,8 @@
+﻿venv/
+.venv/
+__pycache__/
+*.pyc
+*.bin
+*.h5
+*.sigmf-data
+pluto_frames_nocfo.h5

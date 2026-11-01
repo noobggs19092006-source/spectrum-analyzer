@@ -1,0 +1,11 @@
+{
+  "labels": ["BPSK", "QPSK", "8PSK", "QAM16", "QAM64", "GFSK", "CPFSK", "PAM4", "WBFM", "AMDSB", "AMSSB"],
+  "label_to_idx": {
+    "BPSK":  0, "QPSK":  1, "8PSK":  2, "QAM16": 3, "QAM64": 4,
+    "GFSK":  5, "CPFSK": 6, "PAM4":  7, "WBFM":  8, "AMDSB": 9, "AMSSB": 10
+  },
+  "idx_to_label": {
+    "0":"BPSK","1":"QPSK","2":"8PSK","3":"QAM16","4":"QAM64",
+    "5":"GFSK","6":"CPFSK","7":"PAM4","8":"WBFM","9":"AMDSB","10":"AMSSB"
+  }
+}

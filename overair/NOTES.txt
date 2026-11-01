@@ -1,0 +1,6 @@
+﻿Over-the-air WBFM test recording
+Station: 93.5 MHz FM, recorded with RTL-SDR Blog V4
+2.4 MS/s, uint8 interleaved IQ, 144,000,000 samples (60 s)
+Tuner gain 8.7 dB (rtl_sdr -g 10). Mean power -24.4 dB, clipping 0%.
+Label for all frames: WBFM (class index 8). Use for the final generalization test only.
+Do not use fm_93p5.bin: recorded at gain 29.7 dB, it clips.

@@ -1,0 +1,95 @@
+﻿WIRELESS SPECTRUM ANALYZER AND MODULATION RECOGNITION
+Project Report
+
+1. SUMMARY
+
+This project receives radio signals with an RTL-SDR V4, identifies the modulation type of each signal burst with a small neural network, and shows the results on a live dashboard. The classifier recognizes 11 modulation types. On real hardware, using data it never saw during training, it reached 83.4% accuracy (mean of three training seeds, +/- 0.7). The target of 85% was not reached.
+
+2. OBJECTIVES
+
+- Receive and visualize radio signals with an RTL-SDR V4.
+- Classify 11 modulation types: BPSK, QPSK, 8PSK, QAM16, QAM64, GFSK, CPFSK, PAM4, WBFM, AM-DSB, AM-SSB.
+- Flag unusual power levels with a simple anomaly check.
+
+3. EQUIPMENT AND SOFTWARE
+
+Receiver: RTL-SDR Blog V4 (R828D tuner) with a dipole antenna.
+Transmitter (labeled training data): ADALM-Pluto, connected by cable through 40 to 60 dB of attenuation, so nothing is radiated.
+Computer: Lenovo Legion 5 with an NVIDIA RTX 4060 GPU, running Windows 11.
+Software: Python, PyTorch (training), ONNX Runtime (inference), ZeroMQ (messaging), NumPy and SciPy, Matplotlib.
+
+4. METHOD
+
+4.1 Data
+- Simulated data: 299,992 frames from 11 signal generators, with noise, frequency offset (+/- 15 kHz), phase error, timing error, multipath, and 8-bit quantization.
+- Pluto session 1 (transmit gain -40 dB, SNR about -9 to +1 dB): 34,385 frames, used for training.
+- Pluto session 2 (transmit gain -28 dB, SNR about +14 to +20 dB): 34,386 frames, held out for testing only.
+- Each frame is 1024 complex samples at 1.6 million samples per second, normalized to unit power.
+
+4.2 Model
+A 1D convolutional network with 224,779 parameters, trained with AdamW and early stopping. It was exported to ONNX, and the exported model matches the PyTorch model to within 1e-6.
+
+4.3 Key finding: frequency offset
+The AM carriers in the Pluto-to-RTL-SDR setup appear about 10 kHz away from the expected frequency. A model trained with offsets of only +/- 5 kHz failed on real AM signals (F1 0.19 for AM-DSB and 0.04 for AM-SSB). Widening the training offset to +/- 15 kHz fixed most of this.
+
+5. RESULTS
+
+5.1 Real hardware, held-out Pluto session 2
+
+Seed 42: 83.9%
+Seed 1:  83.6%
+Seed 2:  82.6%
+Mean:    83.4% (+/- 0.7)
+
+Comparison: the original model, trained without offset widening, scored 70.3% on the same data.
+
+Per-class F1 score (seed 42 model):
+BPSK 0.90, QPSK 0.85, 8PSK 0.87, QAM16 0.70, QAM64 0.77, GFSK 0.87, CPFSK 0.85, PAM4 0.85, WBFM 0.85, AM-DSB 0.83, AM-SSB 0.89
+
+Analog classes improved the most:
+WBFM 0.54 to 0.85, AM-DSB 0.19 to 0.83, AM-SSB 0.04 to 0.89.
+
+5.2 Simulated held-out test
+Final model: 75.4%. Original model: 77.7%.
+The drop is expected: the wider frequency-offset range makes the simulated task harder, and the model became more robust on real hardware as a result.
+
+5.3 Over-the-air broadcast test
+A 60-second recording of a 93.5 MHz FM station was classified as WBFM for 81.6% of frames.
+
+5.4 Live demonstration
+The full chain runs live: RTL-SDR V4, frame cutter, classifier, and dashboard. The classifier labels the broadcast mostly as WBFM. The exact live WBFM share was: [FILL IN FROM YOUR COUNT].
+
+6. LIMITATIONS
+
+- The 85% target was not reached (83.4% +/- 0.7).
+- QAM16 and QAM64 are the weakest classes (F1 0.70 and 0.77).
+- Widening the frequency-offset range lowered accuracy on the simulated test, a trade-off.
+- Only one transmitter (ADALM-Pluto) and one receiver (RTL-SDR V4) were used, so results may not carry over to other hardware.
+- The over-the-air test covers one station for one minute.
+- The live classifier keeps up with only about 40% of incoming frames, because it processes fewer frames per second than the cutter sends.
+- Live SNR estimates were unreliable and are not reported.
+- The frequency offset in the live cutter is estimated from the spectrum centroid, which is approximate.
+- The anomaly check is a simple power threshold. It works in the demonstration but was not evaluated quantitatively.
+
+7. CONCLUSION
+
+The project delivers a working system from radio capture to live classification, with clear real-hardware results. The largest gains came on the analog modulations, and the frequency-offset finding explains most of the improvement. The main weaknesses are the QAM classes and the live processing speed.
+
+8. FUTURE WORK
+
+- Estimate the carrier frequency separately for each signal, instead of using one fixed correction.
+- Speed up the classifier so the live system keeps up with every frame.
+- Test with more transmitters and receivers.
+- Improve QAM16 and QAM64 separation, for example with more QAM training data.
+
+9. KEY FILES
+
+model_cfo15\classifier_cfo15.onnx   final classifier (seed 42)
+model_cfo15_s1, model_cfo15_s2       additional seeds
+eval\cfo15_pluto*                    real-hardware results
+eval\cfo15_sim_test                  simulated test results
+overair\fm_93p5_g10.bin              over-the-air recording
+overair\NOTES.txt                    recording notes
+pluto_frames.h5                      Pluto dataset
+RESULTS.txt                          summary of results
+start_demo.bat                       one-click launcher for the live demo
